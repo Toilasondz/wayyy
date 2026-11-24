@@ -14,8 +14,11 @@ try {
   vercelBlob = null;
 }
 
+// Tự động nhớ chế độ Private hoặc Public của Vercel Blob Store
+let detectedBlobAccess = process.env.BLOB_ACCESS === 'public' ? 'public' : 'private';
+
 function getStorageMode() {
-  if (process.env.BLOB_READ_WRITE_TOKEN && vercelBlob) {
+  if ((process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) && vercelBlob) {
     return 'vercel_blob';
   }
   if (process.env.VERCEL === '1') {
@@ -51,19 +54,48 @@ async function readDefaultFile(filename) {
   return fs.promises.readFile(fullPath);
 }
 
+async function streamToBuffer(stream) {
+  if (!stream) return null;
+  if (typeof Response !== 'undefined') {
+    const arr = await new Response(stream).arrayBuffer();
+    return Buffer.from(arr);
+  }
+  const chunks = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
 async function putRaw(key, buffer, contentType = 'application/octet-stream') {
   const mode = getStorageMode();
   const data = Buffer.isBuffer(buffer) ? buffer : Buffer.from(String(buffer), 'utf8');
 
   if (mode === 'vercel_blob') {
     const pathname = `${STORAGE_PREFIX}${key}`;
-    const result = await vercelBlob.put(pathname, data, {
-      access: 'public',
+    const opts = {
+      access: detectedBlobAccess,
       addRandomSuffix: false,
       allowOverwrite: true,
       contentType
-    });
-    return { url: result.url, size: data.length, sha256: sha256(data) };
+    };
+
+    try {
+      const result = await vercelBlob.put(pathname, data, opts);
+      return { url: result.url, size: data.length, sha256: sha256(data) };
+    } catch (err) {
+      // Nếu store thực tế là public hoặc private ngược với mặc định thì tự đổi chế độ và thử lại
+      const msg = String(err && err.message ? err.message : '').toLowerCase();
+      if (msg.includes('public') || msg.includes('private') || msg.includes('access')) {
+        detectedBlobAccess = detectedBlobAccess === 'private' ? 'public' : 'private';
+        const retryResult = await vercelBlob.put(pathname, data, {
+          ...opts,
+          access: detectedBlobAccess
+        });
+        return { url: retryResult.url, size: data.length, sha256: sha256(data) };
+      }
+      throw err;
+    }
   }
 
   const fullPath = path.join(getLocalBaseDir(), key);
@@ -77,11 +109,46 @@ async function getRaw(key) {
 
   if (mode === 'vercel_blob') {
     const pathname = `${STORAGE_PREFIX}${key}`;
+
+    // Cách chuẩn 2026 cho cả Private & Public Blob: dùng get() với useCache: false
+    if (typeof vercelBlob.get === 'function') {
+      try {
+        const res = await vercelBlob.get(pathname, {
+          access: detectedBlobAccess,
+          useCache: false
+        });
+        if (!res || res.statusCode === 404 || !res.stream) return null;
+        return await streamToBuffer(res.stream);
+      } catch (err) {
+        const msg = String(err && err.message ? err.message : '').toLowerCase();
+        if (msg.includes('not found') || msg.includes('404')) return null;
+        if (msg.includes('public') || msg.includes('private') || msg.includes('access')) {
+          detectedBlobAccess = detectedBlobAccess === 'private' ? 'public' : 'private';
+          try {
+            const retry = await vercelBlob.get(pathname, {
+              access: detectedBlobAccess,
+              useCache: false
+            });
+            if (!retry || retry.statusCode === 404 || !retry.stream) return null;
+            return await streamToBuffer(retry.stream);
+          } catch {
+            return null;
+          }
+        }
+        return null;
+      }
+    }
+
+    // Fallback cho SDK cũ hơn không có hàm get()
     const { blobs } = await vercelBlob.list({ prefix: pathname, limit: 10 });
     const match = blobs.find((b) => b.pathname === pathname);
     if (!match) return null;
     const sep = match.url.includes('?') ? '&' : '?';
-    const resp = await fetch(`${match.url}${sep}t=${Date.now()}`, { cache: 'no-store' });
+    const headers = {};
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      headers.Authorization = `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`;
+    }
+    const resp = await fetch(`${match.url}${sep}t=${Date.now()}`, { cache: 'no-store', headers });
     if (!resp.ok) return null;
     const arr = await resp.arrayBuffer();
     return Buffer.from(arr);
@@ -123,12 +190,15 @@ async function listAssets() {
 
   if (mode === 'vercel_blob') {
     const { blobs } = await vercelBlob.list({ prefix: `${STORAGE_PREFIX}${prefix}`, limit: 100 });
-    return blobs.map((b) => ({
-      name: b.pathname.slice(`${STORAGE_PREFIX}${prefix}`.length),
-      size: b.size,
-      uploadedAt: b.uploadedAt,
-      url: b.url
-    }));
+    return blobs.map((b) => {
+      const name = b.pathname.slice(`${STORAGE_PREFIX}${prefix}`.length);
+      return {
+        name,
+        size: b.size,
+        uploadedAt: b.uploadedAt,
+        url: `/api/bundle?file=assets/${encodeURIComponent(name)}`
+      };
+    });
   }
 
   const dir = path.join(getLocalBaseDir(), prefix);
@@ -262,7 +332,6 @@ async function publishRelease({
     ? Buffer.from(panelHtml, 'utf8')
     : (await getBundleFile('panel.html')).buffer;
 
-  // Kiểm tra cú pháp JSON hợp lệ trước khi xuất bản
   try {
     JSON.parse(currentConfig.toString('utf8'));
   } catch (err) {
@@ -295,7 +364,6 @@ async function publishRelease({
 
   await putRaw('current/manifest.json', JSON.stringify(manifest, null, 2), 'application/json; charset=utf-8');
 
-  // Lưu snapshot vào lịch sử để Rollback 1-click
   const snapId = `${nextVersion.replace(/[^a-zA-Z0-9._-]/g, '_')}-${Date.now()}`;
   const snapshot = {
     id: snapId,
