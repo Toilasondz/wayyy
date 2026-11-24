@@ -1,0 +1,33 @@
+{
+  "welcomeToast": "VideoStarOTA đã sẵn sàng",
+  "floatingButton": {
+    "enabled": true,
+    "title": "VS",
+    "opacity": 0.92
+  },
+  "features": {
+    "autoCapturePopup": true,
+    "autoCopyPopup": false,
+    "delayModeDefault": false,
+    "delaySeconds": 5,
+    "delayEveryScenes": 10
+  },
+  "classMap": {
+    "default": {
+      "customPopup": "CustomPopup",
+      "object3DPicker": "_TtC10Video_Star18Object3DPickerView"
+    },
+    "13.2.1": {
+      "customPopup": "CustomPopup",
+      "object3DPicker": "_TtC10Video_Star18Object3DPickerView"
+    },
+    "14.3.3": {
+      "customPopup": "CustomPopup",
+      "object3DPicker": "_TtC10Video_Star18Object3DPickerView"
+    },
+    "15.3.3": {
+      "customPopup": "CustomPopup",
+      "object3DPicker": "_TtC10Video_Star18Object3DPickerView"
+    }
+  }
+}

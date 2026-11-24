@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>VideoStarOTA Panel</title>
+  <style>
+    :root {
+      --bg: rgba(18, 22, 34, 0.84);
+      --card: rgba(255, 255, 255, 0.08);
+      --border: rgba(255, 255, 255, 0.16);
+      --text: #f3f6ff;
+      --muted: #9eb0d0;
+      --accent: #38bdf8;
+      --accent2: #818cf8;
+      --ok: #34d399;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+      color: var(--text);
+      background: linear-gradient(155deg, rgba(16, 23, 42, 0.92), rgba(29, 36, 62, 0.88));
+      min-height: 100vh;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .title { font-size: 18px; font-weight: 700; letter-spacing: -0.2px; }
+    .badge {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.18);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: var(--accent);
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 12px;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .label { font-size: 14px; font-weight: 600; }
+    .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .btn {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--border);
+    }
+    .btn-close {
+      background: rgba(244, 63, 94, 0.22);
+      border: 1px solid rgba(244, 63, 94, 0.45);
+      color: #fda4af;
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    pre {
+      margin: 8px 0 0;
+      padding: 10px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.35);
+      font-size: 11px;
+      color: #cbd5e1;
+      max-height: 180px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="title">VideoStar OTA Tool</div>
+      <div class="sub" id="meta">Đang kết nối dylib...</div>
+    </div>
+    <button class="btn-close" onclick="sendNative('close')">Đóng</button>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <div class="label">Delay Mode</div>
+        <div class="sub">Bật: nghỉ 5s mỗi 10 cảnh • Tắt: 0ms</div>
+      </div>
+      <input type="checkbox" id="delayToggle" onchange="toggleDelay(this.checked)" />
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">Tác vụ nhanh (cập nhật từ Vercel)</div>
+    <button class="btn" onclick="callAction('ping')">Kiểm tra kết nối OTA</button>
+    <button class="btn btn-ghost" onclick="callAction('inspect_classes')">Kiểm tra Class Video Star</button>
+    <button class="btn btn-ghost" onclick="callAction('get_last_popup')">Xem nội dung Popup vừa bắt</button>
+    <button class="btn btn-ghost" onclick="callAction('check_update')">Tải bản cập nhật mới từ Vercel</button>
+    <pre id="output">Sẵn sàng...</pre>
+  </div>
+
+  <script>
+    function sendNative(type, payload) {
+      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.vstBridge) {
+        window.webkit.messageHandlers.vstBridge.postMessage({ type: type, payload: payload || {} });
+      } else {
+        document.getElementById('output').textContent = 'Đang xem ngoài app iOS (không có vstBridge).';
+      }
+    }
+
+    function callAction(action, payload) {
+      sendNative('action', { action: action, payload: payload || {} });
+    }
+
+    function toggleDelay(checked) {
+      callAction('toggle_delay_mode', { enabled: checked });
+    }
+
+    // Dylib gọi hàm này để đẩy dữ liệu/kết quả vào Panel
+    window.__vstReceive = function (msg) {
+      if (msg && msg.type === 'init' && msg.data) {
+        document.getElementById('meta').textContent =
+          'VS ' + (msg.data.appVersion || '?') + ' • OTA v' + (msg.data.otaVersion || '?');
+        if (msg.data.delayMode === '1') {
+          document.getElementById('delayToggle').checked = true;
+        }
+        return;
+      }
+      document.getElementById('output').textContent = JSON.stringify(msg, null, 2);
+    };
+
+    sendNative('ready', {});
+  </script>
+</body>
+</html>

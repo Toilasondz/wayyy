@@ -1,0 +1,16 @@
+{
+  "name": "videostar-ota-server",
+  "version": "1.0.0",
+  "description": "Vercel OTA Server & Admin Dashboard for VideoStar iOS Dylib",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "node server-local.js"
+  },
+  "dependencies": {
+    "@vercel/blob": "^0.24.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

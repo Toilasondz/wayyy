@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VideoStar OTA — Bảng Quản Trị Vercel</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --surface: #131a2e;
+      --surface2: #1b2440;
+      --border: rgba(255, 255, 255, 0.1);
+      --text: #eef2ff;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent2: #6366f1;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at top right, #172554, var(--bg) 55%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .hidden { display: none !important; }
+    /* Login Screen */
+    .login-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 400px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+    }
+    .login-card h1 { margin: 0 0 6px; font-size: 22px; }
+    .login-card p { margin: 0 0 20px; color: var(--muted); font-size: 14px; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .input, .textarea, .select {
+      width: 100%;
+      background: #0d1326;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+    }
+    .input:focus, .textarea:focus, .select:focus { border-color: var(--accent); }
+    .btn {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.92; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-full { width: 100%; }
+    .btn-ghost {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.18);
+      border: 1px solid rgba(239, 68, 68, 0.45);
+      color: #fca5a5;
+    }
+    .alert {
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+    .alert-err { background: rgba(239, 68, 68, 0.16); border: 1px solid rgba(239, 68, 68, 0.4); color: #fecaca; }
+    .alert-warn { background: rgba(245, 158, 11, 0.14); border: 1px solid rgba(245, 158, 11, 0.4); color: #fde68a; }
+    .alert-ok { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #bbf7d0; }
+
+    /* Dashboard */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      background: rgba(19, 26, 46, 0.85);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
+    .pill {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.14);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--accent);
+    }
+    .pill-warn {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.4);
+      color: #fcd34d;
+    }
+    .pill-ok {
+      background: rgba(34, 197, 94, 0.15);
+      border-color: rgba(34, 197, 94, 0.4);
+      color: #86efac;
+    }
+    .container {
+      max-width: 1220px;
+      margin: 22px auto;
+      padding: 0 20px 40px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1.55fr 1fr;
+      gap: 18px;
+    }
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+    .panel h2 { margin: 0 0 12px; font-size: 16px; }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .tab {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .tab.active {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .code-editor {
+      width: 100%;
+      min-height: 400px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      background: #0a0f1d;
+      color: #e2e8f0;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      resize: vertical;
+      tab-size: 2;
+    }
+    .dropzone {
+      border: 2px dashed rgba(56, 189, 248, 0.4);
+      border-radius: 12px;
+      padding: 18px;
+      text-align: center;
+      background: rgba(56, 189, 248, 0.05);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .dropzone.drag { background: rgba(56, 189, 248, 0.15); }
+    .list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #0e1427;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: #0e1427;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 12px;
+    }
+    #toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      padding: 12px 18px;
+      border-radius: 12px;
+      background: #1e293b;
+      border: 1px solid var(--accent);
+      color: #fff;
+      font-size: 14px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+  <!-- MÀN HÌNH ĐĂNG NHẬP -->
+  <div id="loginView" class="login-wrap">
+    <div class="login-card">
+      <h1>VideoStar OTA Admin</h1>
+      <p>Đăng nhập để chỉnh sửa mã chức năng, tải tệp lên Vercel và đẩy bản cập nhật thẳng tới app người dùng.</p>
+      <div id="loginErr" class="alert alert-err hidden"></div>
+      <form id="loginForm">
+        <div class="field">
+          <label for="username">Tên đăng nhập</label>
+          <input id="username" class="input" type="text" autocomplete="username" placeholder="admin" required />
+        </div>
+        <div class="field">
+          <label for="password">Mật khẩu</label>
+          <input id="password" class="input" type="password" autocomplete="current-password" placeholder="Nhập mật khẩu" required />
+        </div>
+        <button id="loginBtn" class="btn btn-full" type="submit">Đăng nhập</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- BẢNG QUẢN TRỊ -->
+  <div id="appView" class="hidden">
+    <header class="topbar">
+      <div class="brand">
+        <span>VideoStar OTA Server</span>
+        <span id="versionBadge" class="pill">v1.0.0</span>
+        <span id="storageBadge" class="pill">Đang kiểm tra lưu trữ...</span>
+      </div>
+      <div class="row">
+        <a href="/api/manifest" target="_blank" class="btn btn-ghost" style="text-decoration:none">Xem Manifest JSON</a>
+        <span id="userLabel" class="mono"></span>
+        <button class="btn btn-danger" onclick="logout()">Đăng xuất</button>
+      </div>
+    </header>
+
+    <main class="container">
+      <div id="defaultCredsWarn" class="alert alert-warn hidden">
+        Bạn đang dùng tài khoản mặc định. Hãy vào <strong>Vercel → Settings → Environment Variables</strong> để đặt <code>ADMIN_USERNAME</code>, <code>ADMIN_PASSWORD</code> và <code>SESSION_SECRET</code>.
+      </div>
+      <div id="tmpStorageWarn" class="alert alert-warn hidden">
+        Bạn chưa bật <strong>Vercel Blob</strong> (đang lưu tạm ở <code>/tmp</code>, sẽ mất khi server nghỉ). Hãy vào <strong>Vercel → Storage → Create Database → Blob</strong> để kết nối miễn phí — tệp upload sẽ lưu vĩnh viễn.
+      </div>
+
+      <div class="grid">
+        <!-- Cột trái: Trình chỉnh sửa trực tiếp -->
+        <div>
+          <div class="panel">
+            <div class="row" style="justify-content:space-between; margin-bottom:10px;">
+              <h2 style="margin:0;">Chỉnh sửa mã chức năng trực tiếp</h2>
+              <span class="mono" id="shaLabel"></span>
+            </div>
+
+            <div class="tabs">
+              <button class="tab active" data-tab="payload" onclick="switchTab('payload')">payload.js (Code chức năng)</button>
+              <button class="tab" data-tab="config" onclick="switchTab('config')">config.json (Cấu hình & Class)</button>
+              <button class="tab" data-tab="panel" onclick="switchTab('panel')">panel.html (Giao diện App)</button>
+            </div>
+
+            <textarea id="editor" class="code-editor" spellcheck="false"></textarea>
+
+            <div class="row" style="margin-top:14px;">
+              <div style="flex:1; min-width:140px;">
+                <label class="mono">Phiên bản mới (để trống = tự tăng)</label>
+                <input id="newVersion" class="input" placeholder="VD: 1.0.2" />
+              </div>
+              <div style="flex:2; min-width:220px;">
+                <label class="mono">Ghi chú cập nhật (Changelog)</label>
+                <input id="changelog" class="input" placeholder="VD: Thêm tính năng quét lớp mới cho VS 15.3.3" />
+              </div>
+            </div>
+
+            <div class="field" style="margin-top:12px;">
+              <label class="mono">Thông báo đẩy lên app người dùng (tùy chọn)</label>
+              <input id="announcement" class="input" placeholder="Để trống nếu không cần hiện thông báo" />
+            </div>
+
+            <div class="switch-row">
+              <div>
+                <div style="font-weight:600; font-size:14px;">Kill Switch (Tạm ngưng chạy code từ xa)</div>
+                <div class="mono">Bật khi phát hiện lỗi nghiêm trọng để bảo vệ app người dùng</div>
+              </div>
+              <input id="killSwitch" type="checkbox" style="width:20px; height:20px;" />
+            </div>
+
+            <div class="row">
+              <button id="publishBtn" class="btn" onclick="publishAll()">Xuất bản OTA ngay tới người dùng</button>
+              <button class="btn btn-ghost" onclick="loadState()">Tải lại từ server</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cột phải: Upload file trực tiếp & Lịch sử -->
+        <div>
+          <div class="panel">
+            <h2>Tải tệp lên trực tiếp trên Web Vercel</h2>
+            <div class="field">
+              <label>Mục đích tệp tải lên</label>
+              <select id="uploadTarget" class="select">
+                <option value="payload">Thay thế payload.js & Xuất bản OTA ngay</option>
+                <option value="config">Thay thế config.json & Xuất bản OTA ngay</option>
+                <option value="panel">Thay thế panel.html & Xuất bản OTA ngay</option>
+                <option value="asset">Lưu làm tệp tài nguyên (Preset JSON, QR, ảnh...)</option>
+              </select>
+            </div>
+
+            <div id="dropzone" class="dropzone" onclick="document.getElementById('fileInput').click()">
+              <div style="font-weight:600; margin-bottom:4px;">Chọn tệp hoặc kéo-thả vào đây</div>
+              <div class="mono">Hỗ trợ .js, .json, .html, .png, .zip (tối đa 4MB)</div>
+              <input id="fileInput" type="file" class="hidden" onchange="handleFileSelect(this.files[0])" />
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>Tệp tài nguyên đã tải lên (Assets)</h2>
+            <div id="assetsList" class="mono">Chưa có tệp nào.</div>
+          </div>
+
+          <div class="panel">
+            <h2>Lịch sử phiên bản & Khôi phục nhanh</h2>
+            <div id="historyList" class="mono">Chưa có lịch sử xuất bản.</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast" class="hidden"></div>
+
+  <script>
+    let currentTab = 'payload';
+    const buffers = { payload: '', config: '', panel: '' };
+    let currentManifest = null;
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => el.classList.add('hidden'), 3500);
+    }
+
+    async function api(url, opts = {}) {
+      const res = await fetch(url, {
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+        ...opts
+      });
+      const data = await res.json().catch(() => ({ ok: false, error: 'Phản hồi không phải JSON' }));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      return data;
+    }
+
+    async function checkSession() {
+      try {
+        const res = await api('/api/login');
+        if (res.authenticated) {
+          document.getElementById('loginView').classList.add('hidden');
+          document.getElementById('appView').classList.remove('hidden');
+          await loadState();
+        } else {
+          document.getElementById('loginView').classList.remove('hidden');
+          document.getElementById('appView').classList.add('hidden');
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errBox = document.getElementById('loginErr');
+      errBox.classList.add('hidden');
+      const btn = document.getElementById('loginBtn');
+      btn.disabled = true;
+      try {
+        await api('/api/login', {
+          method: 'POST',
+          body: JSON.stringify({
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value
+          })
+        });
+        await checkSession();
+      } catch (err) {
+        errBox.textContent = err.message;
+        errBox.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    async function logout() {
+      await api('/api/logout', { method: 'POST' });
+      location.reload();
+    }
+
+    async function loadState() {
+      const data = await api('/api/admin/state');
+      currentManifest = data.manifest;
+      buffers.payload = data.files.payloadCode;
+      buffers.config = data.files.configJson;
+      buffers.panel = data.files.panelHtml;
+
+      document.getElementById('userLabel').textContent = 'Admin: ' + data.username;
+      document.getElementById('versionBadge').textContent = 'v' + data.manifest.version;
+      document.getElementById('killSwitch').checked = !!data.manifest.killSwitch;
+      document.getElementById('announcement').value = data.manifest.announcement || '';
+      document.getElementById('newVersion').value = '';
+      document.getElementById('changelog').value = '';
+
+      const storageBadge = document.getElementById('storageBadge');
+      if (data.storageMode === 'vercel_blob') {
+        storageBadge.textContent = 'Vercel Blob: Đã kết nối';
+        storageBadge.className = 'pill pill-ok';
+        document.getElementById('tmpStorageWarn').classList.add('hidden');
+      } else if (data.storageMode === 'ephemeral_tmp') {
+        storageBadge.textContent = 'Lưu tạm (/tmp)';
+        storageBadge.className = 'pill pill-warn';
+        document.getElementById('tmpStorageWarn').classList.remove('hidden');
+      } else {
+        storageBadge.textContent = 'Local Storage';
+        storageBadge.className = 'pill';
+        document.getElementById('tmpStorageWarn').classList.add('hidden');
+      }
+
+      document.getElementById('defaultCredsWarn').classList.toggle('hidden', !data.isDefaultCredentials);
+
+      document.getElementById('editor').value = buffers[currentTab];
+      updateShaLabel();
+      renderAssets(data.assets || []);
+      renderHistory(data.history || []);
+    }
+
+    function updateShaLabel() {
+      if (!currentManifest || !currentManifest.files) return;
+      const info = currentManifest.files[currentTab];
+      document.getElementById('shaLabel').textContent = info
+        ? `SHA-256: ${info.sha256.slice(0, 14)}... (${info.size} bytes)`
+        : '';
+    }
+
+    function switchTab(tab) {
+      buffers[currentTab] = document.getElementById('editor').value;
+      currentTab = tab;
+      document.querySelectorAll('.tab').forEach((el) => {
+        el.classList.toggle('active', el.dataset.tab === tab);
+      });
+      document.getElementById('editor').value = buffers[tab];
+      updateShaLabel();
+    }
+
+    async function publishAll() {
+      buffers[currentTab] = document.getElementById('editor').value;
+      const btn = document.getElementById('publishBtn');
+      btn.disabled = true;
+      try {
+        const res = await api('/api/admin/publish', {
+          method: 'POST',
+          body: JSON.stringify({
+            version: document.getElementById('newVersion').value.trim(),
+            changelog: document.getElementById('changelog').value.trim(),
+            announcement: document.getElementById('announcement').value.trim(),
+            killSwitch: document.getElementById('killSwitch').checked,
+            payloadCode: buffers.payload,
+            configJson: buffers.config,
+            panelHtml: buffers.panel
+          })
+        });
+        showToast('Đã xuất bản OTA v' + res.manifest.version + ' thành công!');
+        await loadState();
+      } catch (err) {
+        alert('Lỗi xuất bản: ' + err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function handleFileSelect(file) {
+      if (!file) return;
+      if (file.size > 4 * 1024 * 1024) {
+        alert('Tệp vượt quá 4MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = String(reader.result).split(',')[1] || '';
+        const target = document.getElementById('uploadTarget').value;
+        try {
+          const res = await api('/api/admin/upload', {
+            method: 'POST',
+            body: JSON.stringify({
+              filename: file.name,
+              target,
+              contentType: file.type || 'application/octet-stream',
+              contentBase64: base64
+            })
+          });
+          if (target === 'asset') {
+            showToast('Đã tải tệp ' + res.asset.name + ' lên Vercel!');
+          } else {
+            showToast('Đã upload & xuất bản OTA v' + res.manifest.version + '!');
+          }
+          await loadState();
+        } catch (err) {
+          alert('Lỗi tải tệp lên: ' + err.message);
+        } finally {
+          document.getElementById('fileInput').value = '';
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    const dz = document.getElementById('dropzone');
+    dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('drag'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+    dz.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dz.classList.remove('drag');
+      if (e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]);
+    });
+
+    function renderAssets(assets) {
+      const box = document.getElementById('assetsList');
+      if (!assets.length) {
+        box.innerHTML = '<div class="mono">Chưa có tệp tài nguyên nào.</div>';
+        return;
+      }
+      box.innerHTML = assets.map((a) => `
+        <div class="list-item">
+          <div>
+            <div style="font-weight:600; color:#fff;">${escapeHtml(a.name)}</div>
+            <div class="mono">${a.size} bytes • <a href="/api/bundle?file=assets/${encodeURIComponent(a.name)}" target="_blank" style="color:var(--accent)">Link tải</a></div>
+          </div>
+          <button class="btn btn-danger" style="padding:6px 10px; font-size:12px;" onclick="deleteAsset('${escapeJs(a.name)}')">Xóa</button>
+        </div>
+      `).join('');
+    }
+
+    async function deleteAsset(name) {
+      if (!confirm('Xóa tệp ' + name + '?')) return;
+      try {
+        await api('/api/admin/upload', {
+          method: 'DELETE',
+          body: JSON.stringify({ name })
+        });
+        showToast('Đã xóa ' + name);
+        await loadState();
+      } catch (err) {
+        alert('Lỗi xóa tệp: ' + err.message);
+      }
+    }
+
+    function renderHistory(history) {
+      const box = document.getElementById('historyList');
+      if (!history.length) {
+        box.innerHTML = '<div class="mono">Chưa có lịch sử xuất bản.</div>';
+        return;
+      }
+      box.innerHTML = history.map((h) => `
+        <div class="list-item">
+          <div>
+            <div style="font-weight:600; color:#fff;">v${escapeHtml(h.version)} — ${escapeHtml(h.changelog)}</div>
+            <div class="mono">${new Date(h.updatedAt).toLocaleString('vi-VN')} • bởi ${escapeHtml(h.updatedBy || 'admin')}</div>
+          </div>
+          <button class="btn btn-ghost" style="padding:6px 10px; font-size:12px;" onclick="rollback('${escapeJs(h.id)}', '${escapeJs(h.version)}')">Khôi phục</button>
+        </div>
+      `).join('');
+    }
+
+    async function rollback(snapshotId, ver) {
+      if (!confirm('Khôi phục toàn bộ người dùng về phiên bản v' + ver + '?')) return;
+      try {
+        const res = await api('/api/admin/rollback', {
+          method: 'POST',
+          body: JSON.stringify({ snapshotId })
+        });
+        showToast('Đã khôi phục thành v' + res.manifest.version + '!');
+        await loadState();
+      } catch (err) {
+        alert('Lỗi khôi phục: ' + err.message);
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    }
+    function escapeJs(s) {
+      return String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
+    checkSession();
+  </script>
+</body>
+</html>
